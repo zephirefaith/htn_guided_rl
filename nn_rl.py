@@ -39,8 +39,9 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import math
 
+# modified class from TabQAgent for a neural net based RL agent
 class QAgent:
-    """Q-learning agent for discrete state/action spaces using LSTM NN."""
+    """Q-learning agent for discrete state/action spaces using LSTM/ConvNN."""
 
     def __init__(self):
         self.epsilon = 0.01 # chance of taking a random action instead of the best
@@ -91,6 +92,7 @@ class QAgent:
         # TODO
 
         # select the next action
+        # TODO copy the different selection schemes from github repo
         rnd = random.random()
         if rnd < self.epsilon:
             a = random.randint(0, len(self.actions) - 1)
@@ -108,6 +110,7 @@ class QAgent:
 
         # try to send the selected action, only update prev_s if this succeeds
         try:
+            # TODO use decomposed actions in succession for "slot 0" and "slot 1" command
             agent_host.sendCommand(self.actions[a])
             self.prev_s = current_s
             self.prev_a = a
@@ -186,7 +189,7 @@ class QAgent:
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 
 # create an RL agent
-agent = TabQAgent()
+agent = QAgent()
 
 # create a Minecraft agent
 agent_host = MalmoPython.AgentHost()
@@ -201,7 +204,7 @@ if agent_host.receivedArgument("help"):
     exit(0)
 
 # -- set up the mission -- #
-mission_file = './gold_room.xml'
+mission_file = './wall_room.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
