@@ -38,14 +38,13 @@ import cPickle as pickle
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import math
+import tensorflow.contrib.slim as slim
 
 # modified class from TabQAgent for a neural net based RL agent
 class QAgent:
     """Q-learning agent for discrete state/action spaces using LSTM/ConvNN."""
 
     def __init__(self):
-        self.epsilon = 0.01 # chance of taking a random action instead of the best
-
         self.logger = logging.getLogger(__name__)
         if False: # True if you want to see more information
             self.logger.setLevel(logging.DEBUG)
@@ -53,14 +52,15 @@ class QAgent:
             self.logger.setLevel(logging.INFO)
         self.logger.handlers = []
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
-
         # actions 7 and 8 are abstracted actions made up of two minecraft hotbar actions
         self.actions = ["move 1", "turn 1", "turn -1", "look 1", "look -1", "attack 1", "use 1", "slot 0", "slot 1"]
-        self.decompose_action["slot 0"] = ["hotbar.0 1", "hotbar.0 0"]
-        self.decompose_action["slot 1"] = ["hotbar.1 1", "hotbar.1 0"]
+        self.decompose_action = {"slot 0":["hotbar.0 1", "hotbar.0 0"], "slot 1":["hotbar.1 1", "hotbar.1 0"]}
+        # initialize neural net
+        # TODO
+        # hyperparameters
+        self.exploration="boltzmann"
         self.gamma = 0.75
         self.learning_rate = 0.85
-
         # puzzle_room world specific
         self.min_x = -70
         self.min_y = 13
@@ -72,70 +72,84 @@ class QAgent:
     def vid2tensor( self, current_frame):
         """Helper function to change current state's video frame to input tensor for nn"""
 
+    def choose_action( self):
+        """Helper function for choosing next action depending on different strategies"""
+        """greedy, random, e-greedy, boltzmann, bayesian"""
+	if self.exploration == "greedy":
+            #Choose an action with the maximum expected value.
+            a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
+            a = a[0]
+            return a
+        if self.exploration == "random":
+            #Choose an action randomly.
+            a = env.action_space.sample()
+        if self.exploration == "e-greedy":
+            #Choose an action by greedily (with e chance of random action) from the Q-network
+            if np.random.rand(1) < e or total_steps < pre_train_steps:
+                a = env.action_space.sample()
+            else:
+                a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
+                a = a[0]
+            return a
+        if self.exploration == "boltzmann":
+            #Choose an action probabilistically, with weights relative to the Q-values.
+            Q_d,allQ = sess.run([q_net.Q_dist,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.Temp:e,q_net.keep_per:1.0})
+            a = np.random.choice(Q_d[0],p=Q_d[0])
+            a = np.argmax(Q_d[0] == a)
+            return a
+        if self.exploration == "bayesian":
+            #Choose an action using a sample from a dropout approximation of a bayesian q-network.
+            a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:(1-e)+0.1})
+            a = a[0]
+        return a
+
     def act(self, world_state, agent_host, current_r ):
         """take 1 action in response to the current world state"""
-
-        # acquiring latest observation
+        # acquiring latest observation and video frame
         current_frame = world_state.video_frames[-1].pixel
         obs_text = world_state.observations[-1].text
         obs = json.loads(obs_text) # most recent observation
-
         # storing state information for debugging
         self.logger.debug(obs)
         if not u'XPos' in obs or not u'ZPos' in obs:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
-        current_s = "%d:%d" % (int(obs[u'XPos']), int(obs[u'ZPos']))
-        self.logger.debug("State: %s (x = %.2f, z = %.2f)" % (current_s, float(obs[u'XPos']), float(obs[u'ZPos'])))
-
+        # change current state to video_frame
+        current_s = self.vid2tensor(current_frame)
+        current_loc = "%d:%d" % (int(obs[u'XPos']), int(obs[u'ZPos']))
+        self.logger.debug("State: %s (x = %.2f, z = %.2f)" % (current_loc, float(obs[u'XPos']), float(obs[u'ZPos'])))
         # update Q values
         # TODO
-
         # select the next action
-        # TODO copy the different selection schemes from github repo
-        rnd = random.random()
-        if rnd < self.epsilon:
-            a = random.randint(0, len(self.actions) - 1)
-            self.logger.info("Random action: %s" % self.actions[a])
-        else:
-            m = max(self.q_table[current_s])
-            self.logger.debug("Current values: %s" % ",".join(str(x) for x in self.q_table[current_s]))
-            l = list()
-            for x in range(0, len(self.actions)):
-                if self.q_table[current_s][x] == m:
-                    l.append(x)
-            y = random.randint(0, len(l)-1)
-            a = l[y]
-            self.logger.info("Taking q action: %s" % self.actions[a])
-
+        a = self.choose_action()
+        self.logger.info("Next action: %s" % self.actions[a])
         # try to send the selected action, only update prev_s if this succeeds
         try:
-            # TODO use decomposed actions in succession for "slot 0" and "slot 1" command
-            agent_host.sendCommand(self.actions[a])
+            # use decomposed actions in succession for "slot 0" and "slot 1" command
+            if a < 7:
+                agent_host.sendCommand(self.actions[a])
+            else:
+                agent_host.sendCommand(self.decompose_action[self.actions[a]][0])
+                agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
             self.prev_s = current_s
             self.prev_a = a
-
         except RuntimeError as e:
             self.logger.error("Failed to send command: %s" % e)
-
         return current_r
 
     def run(self, agent_host):
         """run the agent on the world"""
 
+        # start conditions
         total_reward = 0
-
         self.prev_s = None
         self.prev_a = None
-
         is_first_action = True
-
         # main loop:
+        #grab world state and continue if mission is running
         world_state = agent_host.getWorldState()
         while world_state.is_mission_running:
-
             current_r = 0
-
             if is_first_action:
                 # wait until have received a valid observation
                 while True:
@@ -186,11 +200,10 @@ class QAgent:
 
         return total_reward
 
+#main()
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
-
 # create an RL agent
 agent = QAgent()
-
 # create a Minecraft agent
 agent_host = MalmoPython.AgentHost()
 try:
@@ -202,31 +215,26 @@ except RuntimeError as e:
 if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
-
 # -- set up the mission -- #
 mission_file = './wall_room.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
-
+# number of retries for starting the mission
 max_retries = 3
-
+# option for testing
 if agent_host.receivedArgument("test"):
     num_repeats = 1
 else:
     num_repeats = 150
-
+#rewards array for plotting
 cumulative_rewards = []
-
 # main mission loop
 for i in range(num_repeats):
-
     print
     print 'Repeat %d of %d' % ( i+1, num_repeats )
-
     my_mission_record = MalmoPython.MissionRecordSpec()
-
     # minecraft agent creates world and starts mission
     for retry in range(max_retries):
         try:
@@ -238,7 +246,6 @@ for i in range(num_repeats):
                 exit(1)
             else:
                 time.sleep(2.5)
-
     print "Waiting for the mission to start",
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
@@ -248,7 +255,6 @@ for i in range(num_repeats):
         for error in world_state.errors:
             print "Error:",error.text
     print
-
     # -- run the agent in the world -- #
     # RL agent runs in the world/mission created by agent_host - the minecraft agent
     cumulative_reward = agent.run(agent_host)
