@@ -42,7 +42,7 @@ import tensorflow.contrib.slim as slim
 
 # modified class from TabQAgent for a neural net based RL agent
 class QAgent:
-    """Q-learning agent for discrete state/action spaces using LSTM/ConvNN."""
+    """Q-learning agent for discrete state/action spaces using LSTM/ConvNN and RGB-D data"""
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -57,6 +57,16 @@ class QAgent:
         self.decompose_action = {"slot 0":["hotbar.0 1", "hotbar.0 0"], "slot 1":["hotbar.1 1", "hotbar.1 0"]}
         # initialize neural net
         # TODO
+	self.scalarInput =  tf.placeholder(shape=[None,25920],dtype=tf.float32)
+        self.imageIn = tf.reshape(self.scalarInput,shape=[-1,4,108,60])
+        self.conv1 = tf.contrib.layers.convolution2d( \
+            inputs=self.imageIn,num_outputs=32,kernel_size=[8,8],stride=[4,4],padding='VALID', biases_initializer=None)
+        self.conv2 = tf.contrib.layers.convolution2d( \
+            inputs=self.conv1,num_outputs=64,kernel_size=[4,4],stride=[2,2],padding='VALID', biases_initializer=None)
+        self.conv3 = tf.contrib.layers.convolution2d( \
+            inputs=self.conv2,num_outputs=64,kernel_size=[3,3],stride=[1,1],padding='VALID', biases_initializer=None)
+        self.conv4 = tf.contrib.layers.convolution2d( \
+            inputs=self.conv3,num_outputs=512,kernel_size=[7,7],stride=[1,1],padding='VALID', biases_initializer=None)
         # hyperparameters
         self.exploration="boltzmann"
         self.gamma = 0.75
@@ -65,6 +75,9 @@ class QAgent:
         self.min_x = -70
         self.min_y = 13
         self.min_z = -54
+        # video data specific
+        self.video_height = 60
+        self.video_width = 108
 
     def updateQTable( self, reward, current_state ):
         """Update network to reflect what we have learnt."""
