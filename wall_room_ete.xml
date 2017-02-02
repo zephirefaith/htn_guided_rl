@@ -11,6 +11,7 @@
         <StartTime>1</StartTime>
         <AllowPassageOfTime>false</AllowPassageOfTime>
       </Time>
+      <Weather>clear</Weather>
     </ServerInitialConditions>
     <ServerHandlers>
       <FileWorldGenerator src="/home/zephire/Malmo/projects/rl_for_htn/wall_world/"/>
