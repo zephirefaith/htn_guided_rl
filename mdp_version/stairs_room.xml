@@ -14,8 +14,8 @@
       <Weather>clear</Weather>
     </ServerInitialConditions>
     <ServerHandlers>
-      <FileWorldGenerator src="/home/zephire/Malmo/projects/rl_for_htn/stairs_world/" forceReset="true"/>
-      <ServerQuitFromTimeUp timeLimitMs="10000"/>
+      <FileWorldGenerator src="/home/zephirefaith/Malmo/projects/rl_for_htn/stairs_world/" forceReset="true"/>
+      <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
   </ServerSection>
