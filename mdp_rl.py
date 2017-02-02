@@ -35,11 +35,11 @@ import time
 import Tkinter as tk
 
 class TabQAgent:
-    """Tabular Q-learning agent for discrete state/action spaces."""
+    """Tabular one-step Q-learning agent for discrete state/action spaces."""
 
     def __init__(self):
         self.epsilon = 0.01 # chance of taking a random action instead of the best
-
+        # initializing logging services
         self.logger = logging.getLogger(__name__)
         if False: # True if you want to see more information
             self.logger.setLevel(logging.DEBUG)
@@ -47,15 +47,13 @@ class TabQAgent:
             self.logger.setLevel(logging.INFO)
         self.logger.handlers = []
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
-
-        self.actions = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
-        self.q_table = {}
+        # actions allowed
+        self.actions = ["move 1", "turn 1", "turn -1", "look 1", "look -1", "attack 1", "use 1", "slot 0", "slot 1"]
+        self.decompose_action = {"slot 0":["hotbar.0 1", "hotbar.0 0"], "slot 1":["hotbar.1 1", "hotbar.1 0"]}
         # q-learning specific
+        self.q_table = {}
         self.gamma = 0.75
         self.learning_rate = 0.85
-
-        self.canvas = None
-        self.root = None
         # gold_room specific
         self.min_x = -70
         self.min_y = 13
@@ -63,35 +61,27 @@ class TabQAgent:
 
     def updateQTable( self, reward, current_state ):
         """Change q_table to reflect what we have learnt."""
-
         # retrieve the old action value from the Q-table (indexed by the previous state and the previous action)
         old_q = self.q_table[self.prev_s][self.prev_a]
-
-        # TODO: what should the new action value be?
-        # new_q = reward
-
+        # what should the new action value be?
         # using Q-learning to update qtable
         max_current_q = max(self.q_table[current_state][:])
-        new_q = old_q + self.learning_rate * ( reward + self.gamma * max_current_q - old_q)
-
+        new_q = (1 - self.learning_rate) * old_q + self.learning_rate * ( reward + self.gamma * max_current_q - old_q)
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
 
     def updateQTableFromTerminatingState( self, reward ):
         """Change q_table to reflect what we have learnt, after reaching a terminal state."""
-
         # retrieve the old action value from the Q-table (indexed by the previous state and the previous action)
         old_q = self.q_table[self.prev_s][self.prev_a]
-
-        # TODO: what should the new action value be?
+        # what should the new action value be?
         new_q = reward
-
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
 
     def act(self, world_state, agent_host, current_r ):
         """take 1 action in response to the current world state"""
-
+        # TODO make new state depending upon the gained knowledge from HTN
         obs_text = world_state.observations[-1].text
         obs = json.loads(obs_text) # most recent observation
         self.logger.debug(obs)
@@ -102,13 +92,10 @@ class TabQAgent:
         self.logger.debug("State: %s (x = %.2f, z = %.2f)" % (current_s, float(obs[u'XPos']), float(obs[u'ZPos'])))
         if not self.q_table.has_key(current_s):
             self.q_table[current_s] = ([0] * len(self.actions))
-
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
             self.updateQTable( current_r, current_s )
-
         self.drawQ( curr_x = int(obs[u'XPos']), curr_y = int(obs[u'ZPos']) )
-
         # select the next action
         rnd = random.random()
         if rnd < self.epsilon:
@@ -124,34 +111,25 @@ class TabQAgent:
             y = random.randint(0, len(l)-1)
             a = l[y]
             self.logger.info("Taking q action: %s" % self.actions[a])
-
         # try to send the selected action, only update prev_s if this succeeds
         try:
             agent_host.sendCommand(self.actions[a])
             self.prev_s = current_s
             self.prev_a = a
-
         except RuntimeError as e:
             self.logger.error("Failed to send command: %s" % e)
-
         return current_r
 
     def run(self, agent_host):
         """run the agent on the world"""
-
         total_reward = 0
-
         self.prev_s = None
         self.prev_a = None
-
         is_first_action = True
-
         # main loop:
         world_state = agent_host.getWorldState()
         while world_state.is_mission_running:
-
             current_r = 0
-
             if is_first_action:
                 # wait until have received a valid observation
                 while True:
@@ -189,20 +167,18 @@ class TabQAgent:
                         break
                     if not world_state.is_mission_running:
                         break
-
         # process final reward
         self.logger.debug("Final reward: %d" % current_r)
         total_reward += current_r
-
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
             self.updateQTableFromTerminatingState( current_r )
-
         self.drawQ()
-
         return total_reward
 
     def drawQ( self, curr_x=None, curr_y=None ):
+        """draws a representation of the room and updates max_a Q(s,a) for each s"""
+        # TODO adjust the x-y limits and change so that whole box changes color
         scale = 40
         world_x = 8
         world_y = 16
@@ -247,7 +223,6 @@ class TabQAgent:
         self.root.update()
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
-
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
 try:
@@ -259,29 +234,22 @@ except RuntimeError as e:
 if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
-
 # -- set up the mission -- #
 mission_file = './wall_room.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
-
 max_retries = 3
-
 if agent_host.receivedArgument("test"):
     num_repeats = 1
 else:
     num_repeats = 150
-
 cumulative_rewards = []
 for i in range(num_repeats):
-
     print
     print 'Repeat %d of %d' % ( i+1, num_repeats )
-
     my_mission_record = MalmoPython.MissionRecordSpec()
-
     for retry in range(max_retries):
         try:
             agent_host.startMission( my_mission, my_mission_record )
@@ -292,7 +260,6 @@ for i in range(num_repeats):
                 exit(1)
             else:
                 time.sleep(2.5)
-
     print "Waiting for the mission to start",
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
@@ -302,17 +269,13 @@ for i in range(num_repeats):
         for error in world_state.errors:
             print "Error:",error.text
     print
-
     # -- run the agent in the world -- #
-    #cumulative_reward = agent.run(agent_host)
-    #print 'Cumulative reward: %d' % cumulative_reward
-    #cumulative_rewards += [ cumulative_reward ]
-
+    cumulative_reward = agent.run(agent_host)
+    print 'Cumulative reward: %d' % cumulative_reward
+    cumulative_rewards += [ cumulative_reward ]
     # -- clean up -- #
     time.sleep(0.5) # (let the Mod reset)
-
 print "Done."
-
 print
 print "Cumulative rewards for all %d runs:" % num_repeats
 print cumulative_rewards
