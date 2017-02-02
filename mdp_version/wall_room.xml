@@ -36,11 +36,13 @@
       <RewardForTouchingBlockType>
         <Block reward="-100.0" type="wool" behaviour="onceOnly"/>
         <Block reward="100.0" type="gold_block" behaviour="onceOnly"/>
+        <Block reward="100.0" type="brick_block" behaviour="onceOnly"/>
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
+          <Block type="brick_block" />
       </AgentQuitFromTouchingBlockType>
     </AgentHandlers>
   </AgentSection>
