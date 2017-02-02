@@ -158,7 +158,7 @@ class TabQAgent:
             exit(1)
         block_type = los[u'type']
         in_range = los[u'inRange']
-        if self.prev_a not None:
+        if self.prev_a is not None:
             prev_action = 0
         else:
             prev_action = self.prev_a
