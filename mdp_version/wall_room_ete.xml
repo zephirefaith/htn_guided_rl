@@ -14,8 +14,8 @@
       <Weather>clear</Weather>
     </ServerInitialConditions>
     <ServerHandlers>
-      <FileWorldGenerator src="/home/zephire/Malmo/projects/rl_for_htn/wall_world/"/>
-      <ServerQuitFromTimeUp timeLimitMs="20000"/>
+      <FileWorldGenerator src="/home/zephire/Libraries/Malmo/projects/htn_guided_rl/wall_world/"/>
+      <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
   </ServerSection>
