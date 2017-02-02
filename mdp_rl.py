@@ -54,6 +54,7 @@ class TabQAgent:
         self.gamma = 0.70
         self.learning_rate = 0.85
         self.exploration="e-greedy"
+        self.epsilon = 0.05
         # gold_room specific
         self.min_x = -70
         self.min_y = 13
@@ -66,6 +67,9 @@ class TabQAgent:
             self.relevant_items.append('glass')
         else
             self.relevant_items.append('brick')
+        # for evaluation
+        self.avg_q = 0
+        self.num_moves = 0
 
     def updateQTable( self, reward, current_state ):
         """Change q_table to reflect what we have learnt."""
@@ -87,9 +91,10 @@ class TabQAgent:
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
 
-    def choose_action( self):
+    def choose_action( self, current_s):
         """Helper function for choosing next action depending on different strategies"""
-        """greedy, random, e-greedy, boltzmann, bayesian"""
+        """greedy, random, e-greedy, boltzmann"""
+        # TODO modify greedy, random, boltzmann for MDP
 	if self.exploration == "greedy":
             #Choose an action with the maximum expected value.
             a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
@@ -100,22 +105,19 @@ class TabQAgent:
             a = env.action_space.sample()
         if self.exploration == "e-greedy":
             #Choose an action by greedily (with e chance of random action) from the Q-network
-            if np.random.rand(1) < e or total_steps < pre_train_steps:
-                a = env.action_space.sample()
+            if np.random.rand(1) < self.epsilon :
+                rand_id = np.random.randint(len(self.actions))
+                self.avg_q + = self.q_table[current_s][rand_id]
+                a = rand_id
             else:
-                a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
-                a = a[0]
+                self.avg_q + = max(self.q_table[current_s][:])
+                a = np.argmax(self.q_table[current_s][:])
             return a
         if self.exploration == "boltzmann":
             #Choose an action probabilistically, with weights relative to the Q-values.
             Q_d,allQ = sess.run([q_net.Q_dist,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.Temp:e,q_net.keep_per:1.0})
             a = np.random.choice(Q_d[0],p=Q_d[0])
             a = np.argmax(Q_d[0] == a)
-            return a
-        if self.exploration == "bayesian":
-            #Choose an action using a sample from a dropout approximation of a bayesian q-network.
-            a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:(1-e)+0.1})
-            a = a[0]
         return a
 
     def act(self, world_state, agent_host, current_r ):
@@ -148,7 +150,7 @@ class TabQAgent:
             self.updateQTable( current_r, current_s )
         self.drawQ( curr_x = int(obs[u'XPos']), curr_y = int(obs[u'ZPos']) )
         # select the next action
-        a = self.choose_action()
+        a = self.choose_action( current_s )
         self.logger.info("Taking action: %s" % self.actions[a])
         # try to send the selected action, only update prev_s if this succeeds
         try:
@@ -160,6 +162,7 @@ class TabQAgent:
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
             self.prev_s = current_s
             self.prev_a = a
+            self.num_moves += 1
         except RuntimeError as e:
             self.logger.error("Failed to send command: %s" % e)
         return current_r
@@ -175,6 +178,9 @@ class TabQAgent:
         while world_state.is_mission_running:
             current_r = 0
             if is_first_action:
+                # start with zero initial q_value and num_moves per iteration
+                self.avg_q = 0
+                self.num_moves = 0
                 # wait until have received a valid observation
                 while True:
                     time.sleep(0.1)
@@ -214,11 +220,13 @@ class TabQAgent:
         # process final reward
         self.logger.debug("Final reward: %d" % current_r)
         total_reward += current_r
+        # process average q values this cycle
+        self.avg_q = self.avg_q / self.num_moves
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
             self.updateQTableFromTerminatingState( current_r )
         self.drawQ()
-        return total_reward
+        return total_reward, self.avg_q, self.num_moves
 
     def drawQ( self, curr_x=None, curr_y=None ):
         """draws a representation of the room and updates max_a Q(s,a) for each s"""
@@ -254,7 +262,10 @@ class TabQAgent:
             self.canvas.create_rectangle( curr_x*scale, curr_y*scale, (curr_x+1)*scale, (curr_y+1)*scale, outline="#fff", fill="#111")
         self.root.update()
 
-# TODO store reward_list, num_moves_per_episode, avg_q_value_per_episode
+# store reward_list, num_moves_per_episode, avg_q_value_per_episode
+reward_list = []
+move_list = []
+avg_q_list = []
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
@@ -277,7 +288,7 @@ max_retries = 3
 if agent_host.receivedArgument("test"):
     num_repeats = 1
 else:
-    num_repeats = 150
+    num_repeats = 200
 cumulative_rewards = []
 for i in range(num_repeats):
     print
@@ -303,7 +314,10 @@ for i in range(num_repeats):
             print "Error:",error.text
     print
     # -- run the agent in the world -- #
-    cumulative_reward = agent.run(agent_host)
+    cumulative_reward, num_moves, avg_q = agent.run(agent_host)
+    reward_list.append(cumulative_reward)
+    move_list.append(num_moves)
+    avg_q_list.append(avg_q)
     print 'Cumulative reward: %d' % cumulative_reward
     cumulative_rewards += [ cumulative_reward ]
     # -- clean up -- #
