@@ -158,7 +158,11 @@ class TabQAgent:
             exit(1)
         block_type = los[u'type']
         in_range = los[u'inRange']
-        current_s = [block_type, in_range, self.object_in_hand, self.pitch_count, self.prev_a]
+        if self.prev_a not None:
+            prev_action = 0
+        else:
+            prev_action = self.prev_a
+        current_s = [block_type, in_range, self.object_in_hand, self.pitch_count, prev_action]
         if block_type in self.relevant_items:
             current_r += 50
         if not u'XPos' in obs or not u'ZPos' in obs:
