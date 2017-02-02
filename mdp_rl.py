@@ -47,8 +47,29 @@ class TabQAgent:
         self.logger.handlers = []
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
         # action library
-        self.actions = ["move 1", "turn 1", "turn -1", "look 1", "look -1", "attack 1", "use 1", "slot 0", "slot 1"]
-        self.decompose_action = {"slot 0":["hotbar.0 1", "hotbar.0 0"], "slot 1":["hotbar.1 1", "hotbar.1 0"]}
+        self.pitch_id = [ 3, 4 ]
+        self.hotbar_id = [ 7, 8 ]
+        self.actions = [
+                "move 1",
+                "turn 1",
+                "turn -1",
+                "look 1", #down
+                "look -1", #up
+                "attack 1",
+                "use 1",
+                "slot 0",
+                "slot 1"
+            ]
+        self.decompose_action = {
+                "slot 0":[
+                    "hotbar.0 1",
+                    "hotbar.0 0"
+                    ],
+                "slot 1":[
+                    "hotbar.1 1",
+                    "hotbar.1 0"
+                    ]
+                }
         # q-learning specific
         self.q_table = {}
         self.gamma = 0.70
@@ -60,12 +81,14 @@ class TabQAgent:
         self.min_y = 13
         self.min_z = -54
         # HTN specific
+        self.pitch_count = 0
+        self.object_in_hand = 0
         self.relevant_items = ['gold']
         room = ['wall', 'stairs']
         scenario = 0 # change for different scenarios
-        if room[scenario] = 'wall':
+        if room[scenario] == 'wall':
             self.relevant_items.append('glass')
-        else
+        else:
             self.relevant_items.append('brick')
         # for evaluation
         self.avg_q = 0
@@ -107,10 +130,10 @@ class TabQAgent:
             #Choose an action by greedily (with e chance of random action) from the Q-network
             if np.random.rand(1) < self.epsilon :
                 rand_id = np.random.randint(len(self.actions))
-                self.avg_q + = self.q_table[current_s][rand_id]
+                self.avg_q += self.q_table[current_s][rand_id]
                 a = rand_id
             else:
-                self.avg_q + = max(self.q_table[current_s][:])
+                self.avg_q += max(self.q_table[current_s][:])
                 a = np.argmax(self.q_table[current_s][:])
             return a
         if self.exploration == "boltzmann":
@@ -128,7 +151,7 @@ class TabQAgent:
         # debug log information and store as current_s
         self.logger.debug(obs)
         try:
-            los = ob[u'LineOfSight']
+            los = obs[u'LineOfSight']
         except RuntimeError as e:
             print
             print 'ERROR: ',e
@@ -157,9 +180,17 @@ class TabQAgent:
             # use decomposed actions in succession for "slot 0" and "slot 1" command
             if a < 7:
                 agent_host.sendCommand(self.actions[a])
+                if a == 3:
+                    self.pitch_count -= 1
+                else:
+                    self.pitch_count += 1
             else:
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][0])
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
+                if a == 7:
+                    self.object_in_hand = 1
+                else:
+                    self.object_in_hand = 2
             self.prev_s = current_s
             self.prev_a = a
             self.num_moves += 1
@@ -279,7 +310,7 @@ if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
 # -- set up the mission -- #
-mission_file = './wall_room.xml'
+mission_file = 'mdp_version/wall_room.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
