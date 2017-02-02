@@ -47,7 +47,7 @@ class TabQAgent:
             self.logger.setLevel(logging.INFO)
         self.logger.handlers = []
         self.logger.addHandler(logging.StreamHandler(sys.stdout))
-        # actions allowed
+        # action library
         self.actions = ["move 1", "turn 1", "turn -1", "look 1", "look -1", "attack 1", "use 1", "slot 0", "slot 1"]
         self.decompose_action = {"slot 0":["hotbar.0 1", "hotbar.0 0"], "slot 1":["hotbar.1 1", "hotbar.1 0"]}
         # q-learning specific
