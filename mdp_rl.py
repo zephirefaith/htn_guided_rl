@@ -79,6 +79,37 @@ class TabQAgent:
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
 
+    def choose_action( self):
+        """Helper function for choosing next action depending on different strategies"""
+        """greedy, random, e-greedy, boltzmann, bayesian"""
+	if self.exploration == "greedy":
+            #Choose an action with the maximum expected value.
+            a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
+            a = a[0]
+            return a
+        if self.exploration == "random":
+            #Choose an action randomly.
+            a = env.action_space.sample()
+        if self.exploration == "e-greedy":
+            #Choose an action by greedily (with e chance of random action) from the Q-network
+            if np.random.rand(1) < e or total_steps < pre_train_steps:
+                a = env.action_space.sample()
+            else:
+                a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
+                a = a[0]
+            return a
+        if self.exploration == "boltzmann":
+            #Choose an action probabilistically, with weights relative to the Q-values.
+            Q_d,allQ = sess.run([q_net.Q_dist,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.Temp:e,q_net.keep_per:1.0})
+            a = np.random.choice(Q_d[0],p=Q_d[0])
+            a = np.argmax(Q_d[0] == a)
+            return a
+        if self.exploration == "bayesian":
+            #Choose an action using a sample from a dropout approximation of a bayesian q-network.
+            a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:(1-e)+0.1})
+            a = a[0]
+        return a
+
     def act(self, world_state, agent_host, current_r ):
         """take 1 action in response to the current world state"""
         # TODO make new state depending upon the gained knowledge from HTN
@@ -97,23 +128,16 @@ class TabQAgent:
             self.updateQTable( current_r, current_s )
         self.drawQ( curr_x = int(obs[u'XPos']), curr_y = int(obs[u'ZPos']) )
         # select the next action
-        rnd = random.random()
-        if rnd < self.epsilon:
-            a = random.randint(0, len(self.actions) - 1)
-            self.logger.info("Random action: %s" % self.actions[a])
-        else:
-            m = max(self.q_table[current_s])
-            self.logger.debug("Current values: %s" % ",".join(str(x) for x in self.q_table[current_s]))
-            l = list()
-            for x in range(0, len(self.actions)):
-                if self.q_table[current_s][x] == m:
-                    l.append(x)
-            y = random.randint(0, len(l)-1)
-            a = l[y]
-            self.logger.info("Taking q action: %s" % self.actions[a])
+        a = self.choose_action()
+        self.logger.info("Taking action: %s" % self.actions[a])
         # try to send the selected action, only update prev_s if this succeeds
         try:
-            agent_host.sendCommand(self.actions[a])
+            # use decomposed actions in succession for "slot 0" and "slot 1" command
+            if a < 7:
+                agent_host.sendCommand(self.actions[a])
+            else:
+                agent_host.sendCommand(self.decompose_action[self.actions[a]][0])
+                agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
             self.prev_s = current_s
             self.prev_a = a
         except RuntimeError as e:
@@ -222,6 +246,7 @@ class TabQAgent:
                                      outline="#fff", fill="#fff" )
         self.root.update()
 
+# TODO store reward_list, num_moves_per_episode, avg_q_value_per_episode
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
