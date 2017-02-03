@@ -14,7 +14,7 @@
       <Weather>clear</Weather>
     </ServerInitialConditions>
     <ServerHandlers>
-      <FileWorldGenerator src="/home/zephirefaith/Libraries/Malmo/projects/htn_guided_rl/wall_world/"/>
+      <FileWorldGenerator src="/home/zephirefaith/Libraries/Malmo/projects/htn_guided_rl/wall_world/" forceReset="1"/>
       <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
@@ -31,6 +31,7 @@
     </AgentStart>
     <AgentHandlers>
       <DiscreteMovementCommands/>
+      <InventoryCommands/>
       <ObservationFromFullStats/>
       <ObservationFromRay/>
       <RewardForTouchingBlockType>
@@ -39,6 +40,9 @@
         <Block reward="100.0" type="brick_block" behaviour="onceOnly"/>
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
+      <RewardForReachingPosition>
+          <Marker x="-66" y="14" z="-47" reward="50" />
+      </RewardForReachingPosition>
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
