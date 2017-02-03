@@ -41,7 +41,7 @@
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
       <RewardForReachingPosition>
-          <Marker x="-66" y="14" z="-47" reward="50" />
+          <Marker x="-66" y="14" z="-47" reward="50" tolerance="0.1" oneshot="true"/>
       </RewardForReachingPosition>
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
