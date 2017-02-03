@@ -63,12 +63,12 @@ class TabQAgent:
             ]
         self.decompose_action = {
                 "slot 0":[
-                    "hotbar.0 1",
-                    "hotbar.0 0"
-                    ],
-                "slot 1":[
                     "hotbar.1 1",
                     "hotbar.1 0"
+                    ],
+                "slot 1":[
+                    "hotbar.2 1",
+                    "hotbar.2 0"
                     ]
                 }
         # q-learning specific
@@ -201,9 +201,9 @@ class TabQAgent:
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][0])
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
                 if a == 7:
-                    self.object_in_hand = 0
-                if a == 8:
                     self.object_in_hand = 1
+                if a == 8:
+                    self.object_in_hand = 2
         except RuntimeError as e:
             self.logger.error("Failed to send command: %s" % e)
             exit(1)
