@@ -33,6 +33,7 @@ import random
 import sys
 import time
 import Tkinter as tk
+import numpy as np
 
 class TabQAgent:
     """Tabular one-step Q-learning agent for discrete state/action spaces."""
@@ -40,7 +41,7 @@ class TabQAgent:
     def __init__(self):
         # initializing logging services
         self.logger = logging.getLogger(__name__)
-        if False: # True if you want to see more information
+        if True: # True if you want to see more information
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
@@ -72,6 +73,7 @@ class TabQAgent:
                 }
         # q-learning specific
         self.q_table = {}
+        self.loc_table = {}
         self.gamma = 0.70
         self.learning_rate = 0.85
         self.exploration="e-greedy"
@@ -93,6 +95,11 @@ class TabQAgent:
         # for evaluation
         self.avg_q = 0
         self.num_moves = 0
+        # for visualization
+        self.current_loc = ()
+        self.prev_loc = ()
+        self.canvas = None
+        self.root = None
 
     def updateQTable( self, reward, current_state ):
         """Change q_table to reflect what we have learnt."""
@@ -104,6 +111,7 @@ class TabQAgent:
         new_q = (1 - self.learning_rate) * old_q + self.learning_rate * ( reward + self.gamma * max_current_q - old_q)
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
+        self.loc_table[self.prev_loc] = max(self.q_table[self.prev_s][:])
 
     def updateQTableFromTerminatingState( self, reward ):
         """Change q_table to reflect what we have learnt, after reaching a terminal state."""
@@ -113,6 +121,7 @@ class TabQAgent:
         new_q = reward
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
+        self.loc_table[self.prev_loc] = max(self.q_table[self.prev_s][:])
 
     def choose_action( self, current_s):
         """Helper function for choosing next action depending on different strategies"""
@@ -150,21 +159,20 @@ class TabQAgent:
         obs = json.loads(obs_text) # most recent observation
         # debug log information and store as current_s
         self.logger.debug(obs)
-        try:
+        if obs.has_key(u'LineOfSight'):
             los = obs[u'LineOfSight']
-        except RuntimeError as e:
-            print
-            print 'ERROR: ',e
-            exit(1)
-        block_type = los[u'type']
-        in_range = los[u'inRange']
-        if self.prev_a is not None:
-            prev_action = 0
+            block_type = los[u'type']
+            in_range = los[u'inRange']
+        else:
+            block_type = 'sky'
+            in_range = -1
+        if self.prev_a is None:
+            prev_action = -1
         else:
             prev_action = self.prev_a
-        current_s = [block_type, in_range, self.object_in_hand, self.pitch_count, prev_action]
-        if block_type in self.relevant_items:
-            current_r += 50
+        current_s = (block_type, in_range, self.object_in_hand, self.pitch_count, prev_action)
+        #if block_type in self.relevant_items and in_range == 1:
+        #    current_r += 50
         if not u'XPos' in obs or not u'ZPos' in obs:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
@@ -172,6 +180,7 @@ class TabQAgent:
         self.logger.debug("State: %s %d %d %d %d" % (current_s[0], current_s[1], current_s[2], current_s[3], current_s[4]))
         if not self.q_table.has_key(current_s):
             self.q_table[current_s] = ([0] * len(self.actions))
+            self.loc_table[current_loc] = ()
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
             self.updateQTable( current_r, current_s )
@@ -179,27 +188,29 @@ class TabQAgent:
         # select the next action
         a = self.choose_action( current_s )
         self.logger.info("Taking action: %s" % self.actions[a])
-        # try to send the selected action, only update prev_s if this succeeds
+        # try to send the selected action, only update prev_s  and prev_loc if this succeeds
         try:
             # use decomposed actions in succession for "slot 0" and "slot 1" command
             if a < 7:
                 agent_host.sendCommand(self.actions[a])
                 if a == 3:
-                    self.pitch_count -= 1
-                else:
-                    self.pitch_count += 1
+                    self.pitch_count = max(self.pitch_count - 1, -2)
+                if a == 4:
+                    self.pitch_count = min(self.pitch_count + 1, 2)
             else:
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][0])
                 agent_host.sendCommand(self.decompose_action[self.actions[a]][1])
                 if a == 7:
+                    self.object_in_hand = 0
+                if a == 8:
                     self.object_in_hand = 1
-                else:
-                    self.object_in_hand = 2
-            self.prev_s = current_s
-            self.prev_a = a
-            self.num_moves += 1
         except RuntimeError as e:
             self.logger.error("Failed to send command: %s" % e)
+            exit(1)
+        self.prev_s = current_s
+        self.prev_loc = current_loc
+        self.prev_a = a
+        self.num_moves += 1
         return current_r
 
     def run(self, agent_host):
@@ -282,15 +293,13 @@ class TabQAgent:
         for x in range(world_x):
             for y in range(world_y):
                 s = "%d:%d" % (x + self.min_x, y + self.min_z)
-                value = max( self.q_table[s][:] )
+                self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#fff", fill="#000")
+                if not s in self.q_table:
+                    continue
+                value = self.q_table[s]
                 color = 255 * ( value - min_value ) / ( max_value - min_value ) # map value to 0-255
                 color = max( min( color, 255 ), 0 ) # ensure within [0,255]
                 color_string = '#%02x%02x%02x' % (255-color, color, 0)
-                if not s in self.q_table:
-                    self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#fff", fill="#000")
-                    continue
-                else:
-                    self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline=color_string, fill=color_string)
         if curr_x is not None and curr_y is not None:
             curr_x = curr_x - self.min_x
             curr_y = curr_y - self.min_z
@@ -304,6 +313,7 @@ avg_q_list = []
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
+test = False
 try:
     agent_host.parse( sys.argv )
 except RuntimeError as e:
@@ -320,8 +330,8 @@ with open(mission_file, 'r') as f:
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
 max_retries = 3
-if agent_host.receivedArgument("test"):
-    num_repeats = 1
+if test:
+    num_repeats = 5
 else:
     num_repeats = 200
 cumulative_rewards = []
@@ -349,14 +359,17 @@ for i in range(num_repeats):
             print "Error:",error.text
     print
     # -- run the agent in the world -- #
-    cumulative_reward, num_moves, avg_q = agent.run(agent_host)
-    reward_list.append(cumulative_reward)
-    move_list.append(num_moves)
-    avg_q_list.append(avg_q)
-    print 'Cumulative reward: %d' % cumulative_reward
-    cumulative_rewards += [ cumulative_reward ]
-    # -- clean up -- #
-    time.sleep(0.5) # (let the Mod reset)
+    if not test: #use to toggle between test and RL execution
+        cumulative_reward, num_moves, avg_q = agent.run(agent_host)
+        reward_list.append(cumulative_reward)
+        move_list.append(num_moves)
+        avg_q_list.append(avg_q)
+        print 'Cumulative reward: %d' % cumulative_reward
+        cumulative_rewards += [ cumulative_reward ]
+        # -- clean up -- #
+        time.sleep(0.5) # (let the Mod reset)
+    else:
+        time.sleep(30) #let the human do the thang
 print "Done."
 print
 print "Cumulative rewards for all %d runs:" % num_repeats
