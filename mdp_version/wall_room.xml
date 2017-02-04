@@ -59,6 +59,9 @@
       <RewardForReachingPosition>
           <Marker x="-66" y="14" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
       </RewardForReachingPosition>
+      <RewardForStructureCopying rewardScale="50">
+          <RewardDensity>PER_BLOCK</RewardDensity>
+      </RewardForStructureCopying>
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
