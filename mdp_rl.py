@@ -79,9 +79,9 @@ class TabQAgent:
         self.exploration="e-greedy"
         self.epsilon = 0.05
         # gold_room specific
-        self.min_x = -70
+        self.min_x = -68
         self.min_y = 13
-        self.min_z = -54
+        self.min_z = -52
         # HTN specific
         self.pitch_count = 0
         self.object_in_hand = 0
@@ -121,7 +121,7 @@ class TabQAgent:
         new_q = reward
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
-        self.loc_table[self.prev_loc] = max(self.q_table[self.prev_s][:])
+        self.loc_table[self.prev_loc] = new_q
 
     def choose_action( self, current_s):
         """Helper function for choosing next action depending on different strategies"""
@@ -152,25 +152,51 @@ class TabQAgent:
             a = np.argmax(Q_d[0] == a)
         return a
 
+    def process_observation( self, observation):
+        if False:
+            if observation.has_key(u'LineOfSight'):
+                los = observation[u'LineOfSight']
+                block_type = los[u'type']
+                in_range = los[u'inRange']
+            else:
+                block_type = 'sky'
+                in_range = -1
+            if self.prev_a is None:
+                prev_action = -1
+            else:
+                prev_action = self.prev_a
+            current_s = (block_type, in_range, self.object_in_hand, self.pitch_count, prev_action)
+        else:
+            try:
+                grid = observation.get(u'front2x3', 0)
+            except RuntimeError as e:
+                print "Error: " + e
+                exit(1)
+            flag = 0
+            item_count = 0
+            for item in self.relevant_items:
+                if item in grid:
+                    flag = 1
+                    item_count = grid.count(item)
+                    break
+            current_s = "%s, %s, %s, %s, %s, %s, %d, %d" % (grid[3],
+                    grid[4],
+                    grid[5],
+                    grid[9],
+                    grid[10],
+                    grid[11],
+                    item_count,
+                    self.pitch_count)
+        return current_s
+
     def act(self, world_state, agent_host, current_r ):
         """take 1 action in response to the current world state"""
         # make new knowledge based state for MDP
         obs_text = world_state.observations[-1].text
         obs = json.loads(obs_text) # most recent observation
-        # debug log information and store as current_s
+        # log information and store as current_s
         self.logger.debug(obs)
-        if obs.has_key(u'LineOfSight'):
-            los = obs[u'LineOfSight']
-            block_type = los[u'type']
-            in_range = los[u'inRange']
-        else:
-            block_type = 'sky'
-            in_range = -1
-        if self.prev_a is None:
-            prev_action = -1
-        else:
-            prev_action = self.prev_a
-        current_s = (block_type, in_range, self.object_in_hand, self.pitch_count, prev_action)
+        current_s = self.process_observation(obs)
         #if block_type in self.relevant_items and in_range == 1:
         #    current_r += 50
         if not u'XPos' in obs or not u'ZPos' in obs:
@@ -180,7 +206,7 @@ class TabQAgent:
         self.logger.debug("State: %s %d %d %d %d" % (current_s[0], current_s[1], current_s[2], current_s[3], current_s[4]))
         if not self.q_table.has_key(current_s):
             self.q_table[current_s] = ([0] * len(self.actions))
-            self.loc_table[current_loc] = ()
+            self.loc_table[current_loc] = 0
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
             self.updateQTable( current_r, current_s )
@@ -279,7 +305,7 @@ class TabQAgent:
         # TODO adjust the x-y limits and change so that whole box changes color
         scale = 40
         world_x = 8
-        world_y = 16
+        world_y = 20
         if self.canvas is None or self.root is None:
             self.root = tk.Tk()
             self.root.wm_title("Q-table")
@@ -293,17 +319,18 @@ class TabQAgent:
         for x in range(world_x):
             for y in range(world_y):
                 s = "%d:%d" % (x + self.min_x, y + self.min_z)
-                self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#fff", fill="#000")
-                if not s in self.q_table:
+                if not s in self.loc_table:
+                    self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#000", fill="#fff")
                     continue
-                value = self.q_table[s]
+                value = int(self.loc_table[s])
                 color = 255 * ( value - min_value ) / ( max_value - min_value ) # map value to 0-255
                 color = max( min( color, 255 ), 0 ) # ensure within [0,255]
                 color_string = '#%02x%02x%02x' % (255-color, color, 0)
+                self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#000", fill=color_string)
         if curr_x is not None and curr_y is not None:
             curr_x = curr_x - self.min_x
             curr_y = curr_y - self.min_z
-            self.canvas.create_rectangle( curr_x*scale, curr_y*scale, (curr_x+1)*scale, (curr_y+1)*scale, outline="#fff", fill="#111")
+            self.canvas.create_rectangle( curr_x*scale, curr_y*scale, (curr_x+1)*scale, (curr_y+1)*scale, outline="#fff", fill="#555")
         self.root.update()
 
 # store reward_list, num_moves_per_episode, avg_q_value_per_episode
@@ -313,7 +340,7 @@ avg_q_list = []
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
-test = False
+test = True
 try:
     agent_host.parse( sys.argv )
 except RuntimeError as e:
