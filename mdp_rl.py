@@ -26,14 +26,10 @@
 # Stuart J. Russell and Peter Norvig
 
 import MalmoPython
-import json
-import logging
 import os
-import random
 import sys
 import time
-import Tkinter as tk
-import numpy as np
+import matplotlib.pyplot as plt
 from QAgent import TabQAgent
 
 # store reward_list, num_moves_per_episode, avg_q_value_per_episode
@@ -43,7 +39,7 @@ avg_q_list = []
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
-test = True
+test = False
 try:
     agent_host.parse( sys.argv )
 except RuntimeError as e:
@@ -104,3 +100,6 @@ print "Done."
 print
 print "Cumulative rewards for all %d runs:" % num_repeats
 print cumulative_rewards
+plt.plot(reward_list)
+plt.plot(move_list)
+plt.plot(avg_q_list)

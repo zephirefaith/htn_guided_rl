@@ -1,3 +1,14 @@
+from __future__ import division
+import MalmoPython
+import json
+import logging
+import os
+import random
+import sys
+import time
+import Tkinter as tk
+import numpy as np
+
 class TabQAgent:
     """Tabular one-step Q-learning agent for discrete state/action spaces."""
 
@@ -48,13 +59,13 @@ class TabQAgent:
         # HTN specific
         self.pitch_count = 0
         self.object_in_hand = 0
-        self.relevant_items = ['gold']
+        self.relevant_items = [u'gold']
         room = ['wall', 'stairs']
         scenario = 0 # change for different scenarios
         if room[scenario] == 'wall':
-            self.relevant_items.append('glass')
+            self.relevant_items.append(u'glass')
         else:
-            self.relevant_items.append('brick')
+            self.relevant_items.append(u'brick')
         # for evaluation
         self.avg_q = 0
         self.num_moves = 0
@@ -117,44 +128,44 @@ class TabQAgent:
 
     def process_observation( self, observation):
         """processes current observation to form a state for MDP-RL"""
-        if False: # true for LineOfSight observation
-            if observation.has_key(u'LineOfSight'):
-                los = observation[u'LineOfSight']
-                block_type = los[u'type']
-                in_range = los[u'inRange']
-            else:
-                block_type = 'sky'
-                in_range = -1
-            if self.prev_a is None:
-                prev_action = -1
-            else:
-                prev_action = self.prev_a
-            current_s = (block_type, in_range, self.object_in_hand, self.pitch_count, prev_action)
+        # returns 6 blocks right in front of the agent, what it is staring at, item_count and pitch status
+        # get yaw, and depending upon the yaw  make current state out of the 6 blocks right in front
+        direction = {'left','right','forward','backward'}
+        yaw = observation.get(u'Yaw')
+        if yaw is None:
+            print "Incomplete Observation: " + observation
+            exit(1)
+        if observation.has_key(u'LineOfSight'):
+            los = observation.get(u'LineOfSight')
+            block_type = los[u'type']
+            in_range = los[u'inRange']
         else:
-            # extract grid from observation
-            try:
-                grid = observation.get(u'front2x3', 0)
-            except RuntimeError as e:
-                print "Error: " + e
-                exit(1)
-            flag = 0
-            item_count = 0
-            # check if relevant items are on the myopic horizon
-            for item in self.relevant_items:
-                if item in grid:
-                    flag = 1
-                    # get count for item
-                    item_count = grid.count(item)
-                    break
-            # form current state: 6 blocks right in front of agent, item count, pitch status)
-            current_s = "%s, %s, %s, %s, %s, %s, %d, %d" % (grid[3],
-                    grid[4],
-                    grid[5],
-                    grid[9],
-                    grid[10],
-                    grid[11],
-                    item_count,
-                    self.pitch_count)
+            block_type = 'undefined'
+            in_range = False
+        # extract grid from observation, and format "front" depending upon Yaw of the agent
+        grid = observation.get(u'around5x5', 0)
+        if grid is None:
+            print "Incomplete Observation: " + observation
+            exit(1)
+        flag = 0
+        item_count = 0
+        # check if relevant items are on the myopic horizon
+        for item in self.relevant_items:
+            if item in grid:
+                flag = 1
+                # get count for item
+                item_count = grid.count(item)
+                break
+        current_s = (grid[0],
+                grid[1],
+                grid[2],
+                grid[6],
+                grid[7],
+                grid[8],
+                block_type,
+                in_range,
+                item_count,
+                self.pitch_count)
         return current_s
 
     def act(self, world_state, agent_host, current_r ):
@@ -171,9 +182,19 @@ class TabQAgent:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
         current_loc = "%d:%d" % (int(obs[u'XPos']), int(obs[u'ZPos']))
-        self.logger.debug("State: %s %d %d %d %d" % (current_s[0], current_s[1], current_s[2], current_s[3], current_s[4]))
+        self.logger.debug("State: %s %s %s %s %s %s %s %s %s %s" % (current_s[0],
+            current_s[1],
+            current_s[2],
+            current_s[3],
+            current_s[4],
+            current_s[5],
+            current_s[6],
+            current_s[7],
+            current_s[8],
+            current_s[9],
+            ))
         if not self.q_table.has_key(current_s):
-            self.q_table[current_s] = ([0] * len(self.actions))
+            self.q_table[current_s] = ([1/len(self.actions)] * len(self.actions))
             self.loc_table[current_loc] = 0
         # update Q values
         if self.prev_s is not None and self.prev_a is not None:
@@ -221,6 +242,7 @@ class TabQAgent:
                 # start with zero initial q_value and num_moves per iteration
                 self.avg_q = 0
                 self.num_moves = 0
+                self.pitch_count = 0
                 # wait until have received a valid observation
                 while True:
                     time.sleep(0.1)
