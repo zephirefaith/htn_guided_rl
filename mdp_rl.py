@@ -59,7 +59,7 @@ max_retries = 3
 if test:
     num_repeats = 5
 else:
-    num_repeats = 200
+    num_repeats = 250
 cumulative_rewards = []
 for i in range(num_repeats):
     print
@@ -79,21 +79,21 @@ for i in range(num_repeats):
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
         sys.stdout.write(".")
-        time.sleep(0.1)
+        time.sleep(2.0)
         world_state = agent_host.getWorldState()
         for error in world_state.errors:
             print "Error:",error.text
     print
     # -- run the agent in the world -- #
     if not test: #use to toggle between test and RL execution
-        cumulative_reward, num_moves, avg_q = agent.run(agent_host)
+        cumulative_reward, avg_q, num_moves = agent.run(agent_host)
         reward_list.append(cumulative_reward)
         move_list.append(num_moves)
         avg_q_list.append(avg_q)
-        print 'Cumulative reward: %d' % cumulative_reward
+        print 'Cumulative reward: {0}, Number of Moves: {1}, Average Q-value: {2}'.format(cumulative_reward, num_moves, avg_q)
         cumulative_rewards += [ cumulative_reward ]
         # -- clean up -- #
-        time.sleep(0.5) # (let the Mod reset)
+        time.sleep(1.0) # (let the Mod reset)
     else:
         time.sleep(30) #let the human do the thang
 print "Done."
