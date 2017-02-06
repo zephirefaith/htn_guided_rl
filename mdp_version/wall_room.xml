@@ -12,6 +12,7 @@
         <AllowPassageOfTime>false</AllowPassageOfTime>
       </Time>
       <Weather>clear</Weather>
+      <AllowSpawning>false</AllowSpawning>
     </ServerInitialConditions>
     <ServerHandlers>
         <FileWorldGenerator src="/home/zephirefaith/Libraries/Malmo/projects/htn_guided_rl/wall_world/" forceReset="1"/>
@@ -30,7 +31,7 @@
     </ServerHandlers>
   </ServerSection>
 
-  <AgentSection mode="Creative">
+  <AgentSection mode="Survival">
     <Name>WallE</Name>
     <AgentStart>
       <Placement x="-63" y="14" z="-42" yaw="180"/>
@@ -58,9 +59,9 @@
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
       <RewardForReachingPosition>
-          <Marker x="-65" y="13" z="-45" reward="100" tolerance="0.1" oneshot="true"/>
-          <Marker x="-66" y="13" z="-45" reward="100" tolerance="0.1" oneshot="true"/>
-          <Marker x="-67" y="13" z="-45" reward="100" tolerance="0.1" oneshot="true"/>
+          <Marker x="-65" y="13" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
+          <Marker x="-66" y="13" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
+          <Marker x="-67" y="13" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
       </RewardForReachingPosition>
       <RewardForStructureCopying rewardScale="50">
           <RewardDensity>PER_BLOCK</RewardDensity>
@@ -71,9 +72,9 @@
           <Block type="dirt" />
       </AgentQuitFromTouchingBlockType>
       <AgentQuitFromReachingPosition>
-          <Marker x="-65" y="13" z="-45" tolerance="0.1" description="broke_wall" />
-          <Marker x="-66" y="13" z="-45" tolerance="0.1" description="broke_wall" />
-          <Marker x="-67" y="13" z="-45" tolerance="0.1" description="broke_wall" />
+          <Marker x="-65" y="13" z="-47" tolerance="0.1" description="broke_wall" />
+          <Marker x="-66" y="13" z="-47" tolerance="0.1" description="broke_wall" />
+          <Marker x="-67" y="13" z="-47" tolerance="0.1" description="broke_wall" />
       </AgentQuitFromReachingPosition>
     </AgentHandlers>
   </AgentSection>
