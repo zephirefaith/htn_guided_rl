@@ -29,8 +29,10 @@ import MalmoPython
 import os
 import sys
 import time
-import matplotlib.pyplot as plt
+import matplotlib as mlib
+mlib.use('Agg')
 from QAgent import TabQAgent
+import mlib.pyplot as plt
 
 # store reward_list, num_moves_per_episode, avg_q_value_per_episode
 reward_list = []
@@ -79,7 +81,7 @@ for i in range(num_repeats):
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
         sys.stdout.write(".")
-        time.sleep(2.0)
+        time.sleep(3.0)
         world_state = agent_host.getWorldState()
         for error in world_state.errors:
             print "Error:",error.text
@@ -101,5 +103,11 @@ print
 print "Cumulative rewards for all %d runs:" % num_repeats
 print cumulative_rewards
 plt.plot(reward_list)
+plt.savefig('reward_wall.png')
+plt.close()
 plt.plot(move_list)
+plt.savefig('move_wall.png')
+plt.close()
 plt.plot(avg_q_list)
+plt.savefig('avg_q_wall.png')
+plt.close()
