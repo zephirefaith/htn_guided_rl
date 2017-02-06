@@ -46,7 +46,7 @@
       <ObservationFromFullStats/>
       <ObservationFromRay/>
       <ObservationFromGrid>
-          <Grid name="around5x5">
+          <Grid name="around9x9">
               <min x="-2" y="-1" z="-2" />
               <max x="2" y="1" z="2" />
           </Grid>
@@ -59,9 +59,9 @@
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
       <RewardForReachingPosition>
-          <Marker x="-65" y="14" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
-          <Marker x="-66" y="14" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
-          <Marker x="-67" y="14" z="-47" reward="100" tolerance="0.1" oneshot="true"/>
+          <Marker x="-65" y="14" z="-46.5" reward="100" tolerance="0.6" oneshot="true"/>
+          <Marker x="-66" y="14" z="-46.5" reward="100" tolerance="0.6" oneshot="true"/>
+          <Marker x="-67" y="14" z="-46.5" reward="100" tolerance="0.6" oneshot="true"/>
       </RewardForReachingPosition>
       <RewardForStructureCopying rewardScale="50">
           <RewardDensity>PER_BLOCK</RewardDensity>
@@ -72,9 +72,9 @@
           <Block type="dirt" />
       </AgentQuitFromTouchingBlockType>
       <AgentQuitFromReachingPosition>
-          <Marker x="-65" y="14" z="-47" tolerance="0.1" description="broke_wall" />
-          <Marker x="-66" y="14" z="-47" tolerance="0.1" description="broke_wall" />
-          <Marker x="-67" y="14" z="-47" tolerance="0.1" description="broke_wall" />
+          <Marker x="-65" y="14" z="-46.5" tolerance="0.6" description="broke_wall" />
+          <Marker x="-66" y="14" z="-46.5" tolerance="0.6" description="broke_wall" />
+          <Marker x="-67" y="14" z="-46.5" tolerance="0.6" description="broke_wall" />
       </AgentQuitFromReachingPosition>
     </AgentHandlers>
   </AgentSection>
