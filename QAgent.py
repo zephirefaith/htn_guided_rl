@@ -31,20 +31,20 @@ class TabQAgent:
                 "look 1", #down
                 "look -1", #up
                 "attack 1",
-                "use 1",
-                "slot 0",
-                "slot 1"
-            ]
-        self.decompose_action = {
-                "slot 0":[
-                    "hotbar.1 1",
-                    "hotbar.1 0"
-                    ],
-                "slot 1":[
-                    "hotbar.2 1",
-                    "hotbar.2 0"
-                    ]
-                }
+        #        "use 1",
+        #        "slot 0",
+        #        "slot 1"
+                ]
+        #self.decompose_action = {
+        #        "slot 0":[
+        #            "hotbar.1 1",
+        #            "hotbar.1 0"
+        #            ],
+        #        "slot 1":[
+        #            "hotbar.2 1",
+        #            "hotbar.2 0"
+        #            ]
+        #        }
         # q-learning specific
         self.q_table = {}
         self.loc_table = {}
@@ -77,15 +77,17 @@ class TabQAgent:
         self.root = None
 
     def reScale(self, row):
-        """Scales rows of RL-MDP to restrict s.t. sum of all Q-values is 10"""
+        """Scales rows of RL-MDP to restrict s.t. sum of all Q-values is 50"""
         max_lim = max(row)
         min_lim = min(row)
         # scale to 0 to 10
         if max_lim != min_lim:
             new_row = [((float(i)-min_lim)*10)/(max_lim-min_lim) for i in row]
-        # scale s.t. sum is 10
+        else:
+            new_row = row
+        # scale s.t. sum is 50
         sum_row = sum(new_row)
-        new_row = [float(i)/sum_row for i in new_row]
+        new_row = [float(i)*50/sum_row for i in new_row]
         return new_row
 
     def updateQTable( self, reward, current_state ):
@@ -98,9 +100,10 @@ class TabQAgent:
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = new_q
         # normalize the values
-        self.q_table[self.prev_s] = self.reScale(self.q_table[self.prev_s])
-        self.loc_table[self.prev_loc] = max(self.q_table[self.prev_s])
-        self.logger.info("Max reward at last location: "+str(self.loc_table[self.prev_loc]))
+        #self.q_table[self.prev_s] = self.reScale(self.q_table[self.prev_s])
+        self.logger.debug("Prev: {0}, After scaling: {1}".format(new_q, self.q_table[self.prev_s][self.prev_a]))
+        self.loc_table[self.prev_loc] = self.q_table[self.prev_s][self.prev_a]
+        self.logger.debug("Max q-value at last location: "+str(self.loc_table[self.prev_loc]))
 
     def updateQTableFromTerminatingState( self, reward ):
         """Change q_table to reflect what we have learnt, after reaching a terminal state."""
@@ -110,8 +113,8 @@ class TabQAgent:
         new_q = reward
         # assign the new action value to the Q-table
         self.q_table[self.prev_s][self.prev_a] = self.learning_rate * new_q
-        self.q_table[self.prev_s] = self.reScale(self.q_table[self.prev_s])
-        self.loc_table[self.prev_loc] = max(self.q_table[self.prev_s][:])
+        #self.q_table[self.prev_s] = self.reScale(self.q_table[self.prev_s])
+        self.loc_table[self.prev_loc] = self.q_table[self.prev_s][self.prev_a]
 
     def choose_action( self, current_s):
         """Helper function for choosing next action depending on different strategies"""
@@ -145,11 +148,13 @@ class TabQAgent:
     def process_observation( self, observation):
         """processes current observation to form a state for MDP-RL"""
         # returns 6 blocks right in front of the agent, what it is staring at, item_count and pitch status
-        # get yaw, and depending upon the yaw  make current state out of the 6 blocks right in front
+        # get yaw, and depending upon the yaw  make current state out of the 9 blocks right in front
+        self.logger.debug(observation)
         direction = {'left':90.0,'right':-90.0,'forward':180.0,'backward':0.0}
         yaw = observation.get(u'Yaw')
         if yaw is None:
-            print "Incomplete Observation: " + observation
+            print "Incomplete Observation:"
+            print(observation)
             exit(1)
         if observation.has_key(u'LineOfSight'):
             los = observation.get(u'LineOfSight')
@@ -169,22 +174,21 @@ class TabQAgent:
         # format "front" depending upon Yaw of the agent
         if yaw == direction['left']:
             self.logger.debug("%%Facing left%%")
-            front_idx = range(5*3+1,5*1+0,-5) + range(5*3+26, 5*1+25, -5)
+            front_idx = range(5*3+1,5*1+0,-5) + range(5*3+26, 5*1+25, -5) + range(5+3+51, 5*1+50, -5)
             self.logger.debug(front_idx)
         elif yaw == direction['right']:
             self.logger.debug("%%Facing right%%")
-            front_idx = range(5*1+3,5*3+4,5) + range(5*2+28, 5*3+29, 5)
+            front_idx = range(5*1+3,5*3+4,5) + range(5*1+28, 5*3+29, 5) + range(5*1+53,5*3+54,5)
             self.logger.debug(front_idx)
         elif yaw == direction['forward']:
             self.logger.debug("%%Facing forward%%")
-            front_idx = range(6,9) + range(6+25, 9+25)
+            front_idx = range(6,9) + range(6+25, 9+25) + range(6+50,9+50)
             self.logger.debug(front_idx)
         else:
             self.logger.debug("%%Facing backward%%")
-            front_idx = range(18,15,-1) + range(18+25,15+25, -1)
+            front_idx = range(18,15,-1) + range(18+25,15+25,-1) + range(18+50,15+50,-1)
             self.logger.debug(front_idx)
         front = [grid[block_idx] for block_idx in range(len(grid)) if block_idx in front_idx]
-        self.logger.debug(front)
         # check if relevant items are on the myopic horizon
         for item in self.relevant_items:
             if item in grid:
@@ -201,7 +205,9 @@ class TabQAgent:
                 block_type,
                 in_range,
                 item_count,
-                self.pitch_count)
+                self.pitch_count,
+                self.prev_a,
+                )
         return current_s
 
     def act(self, world_state, agent_host, current_r ):
@@ -212,8 +218,11 @@ class TabQAgent:
         # log information and store as current_s
         self.logger.debug(obs)
         current_s = self.process_observation(obs)
-        #if block_type in self.relevant_items and in_range == 1:
-        #    current_r += 50
+        # setting up additional rewards based on HTN information
+        if current_s[-5] in self.relevant_items:
+            current_r += 10
+            if current_s[-4] == True:
+                current_r +=15
         if not u'XPos' in obs or not u'ZPos' in obs:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
@@ -227,7 +236,9 @@ class TabQAgent:
         self.drawQ( curr_x = int(obs[u'XPos']), curr_y = int(obs[u'ZPos']) )
         # select the next action
         a = self.choose_action( current_s )
-        self.logger.info("State: "+str(current_s[:]) + ", action: " + str( self.actions[a]))
+        if self.actions[a] == 'attack 1':
+            current_r += -5
+        self.logger.info(str(current_s[:]) + ", action: " + str( self.actions[a]))
         # try to send the selected action, only update prev_s  and prev_loc if this succeeds
         try:
             # use decomposed actions in succession for "slot 0" and "slot 1" command
@@ -259,15 +270,15 @@ class TabQAgent:
         self.prev_s = None
         self.prev_a = None
         is_first_action = True
+        self.avg_q = 0
+        self.num_moves = 0
+        self.pitch_count = 0
         # main loop:
         world_state = agent_host.getWorldState()
         while world_state.is_mission_running:
             current_r = 0
             if is_first_action:
                 # start with zero initial q_value and num_moves per iteration
-                self.avg_q = 0
-                self.num_moves = 0
-                self.pitch_count = 0
                 # wait until have received a valid observation
                 while True:
                     time.sleep(0.1)
@@ -291,7 +302,8 @@ class TabQAgent:
                         self.logger.error("Error: %s" % error.text)
                     for reward in world_state.rewards:
                         current_r += reward.getValue()
-                        self.logger.info("Reward this step:"+str(current_r))
+                        if current_r > 0:
+                            self.logger.info("Reward this step:"+str(current_r))
                 # allow time to stabilise after action
                 while True:
                     time.sleep(0.1)
@@ -320,8 +332,8 @@ class TabQAgent:
         """draws a representation of the room and updates max_a Q(s,a) for each s"""
         # TODO adjust the x-y limits and change so that whole box changes color
         scale = 40
-        world_x = 8
-        world_y = 20
+        world_x = 7
+        world_y = 16
         if self.canvas is None or self.root is None:
             self.root = tk.Tk()
             self.root.wm_title("Q-table")
@@ -331,7 +343,7 @@ class TabQAgent:
         self.canvas.delete("all")
         # (NSWE to match action order)
         min_value = -20
-        max_value = 20
+        max_value = 50
         for x in range(world_x):
             for y in range(world_y):
                 s = "%d:%d" % (x + self.min_x, y + self.min_z)
@@ -342,7 +354,7 @@ class TabQAgent:
                 color = 255 * ( value - min_value ) / ( max_value - min_value ) # map value to 0-255
                 color = max( min( color, 255 ), 0 ) # ensure within [0,255]
                 color_string = '#%02x%02x%02x' % (255-color, color, 0)
-                self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#000", fill=color_string)
+                self.canvas.create_rectangle( x*scale, y*scale, (x+1)*scale, (y+1)*scale, outline="#fff", fill=color_string)
         if curr_x is not None and curr_y is not None:
             curr_x = curr_x - self.min_x
             curr_y = curr_y - self.min_z
