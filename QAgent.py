@@ -49,9 +49,9 @@ class TabQAgent:
         self.q_table = {}
         self.loc_table = {}
         self.gamma = 0.90
-        self.learning_rate = 0.5
+        self.learning_rate = 0.75
         self.exploration="e-greedy"
-        self.epsilon = 0.20
+        self.epsilon = 0.1
         self.scale = 10
         # gold_room specific
         self.min_x = -68
@@ -150,7 +150,7 @@ class TabQAgent:
         # returns 6 blocks right in front of the agent, what it is staring at, item_count and pitch status
         # get yaw, and depending upon the yaw  make current state out of the 9 blocks right in front
         self.logger.debug(observation)
-        direction = {'left':90.0,'right':-90.0,'forward':180.0,'backward':0.0}
+        direction = {'left':90.0,'right':270,'forward':180.0,'backward':0.0}
         yaw = observation.get(u'Yaw')
         if yaw is None:
             print "Incomplete Observation:"
@@ -164,7 +164,7 @@ class TabQAgent:
             block_type = 'undefined'
             in_range = False
         # extract grid from observation
-        grid = observation.get(u'around5x5', 0)
+        grid = observation.get(u'around9x9', 0)
         if grid is None:
             print "Incomplete Observation: " + observation
             exit(1)
@@ -174,21 +174,19 @@ class TabQAgent:
         # format "front" depending upon Yaw of the agent
         if yaw == direction['left']:
             self.logger.debug("%%Facing left%%")
-            front_idx = range(5*3+1,5*1+0,-5) + range(5*3+26, 5*1+25, -5) + range(5+3+51, 5*1+50, -5)
-            self.logger.debug(front_idx)
+            front_idx = range(5*3+1,5*1+0,-5) + range(5*3+26, 5*1+25, -5) + range(5*3+51, 5*1+50, -5)
         elif yaw == direction['right']:
             self.logger.debug("%%Facing right%%")
             front_idx = range(5*1+3,5*3+4,5) + range(5*1+28, 5*3+29, 5) + range(5*1+53,5*3+54,5)
-            self.logger.debug(front_idx)
         elif yaw == direction['forward']:
             self.logger.debug("%%Facing forward%%")
             front_idx = range(6,9) + range(6+25, 9+25) + range(6+50,9+50)
-            self.logger.debug(front_idx)
         else:
             self.logger.debug("%%Facing backward%%")
             front_idx = range(18,15,-1) + range(18+25,15+25,-1) + range(18+50,15+50,-1)
-            self.logger.debug(front_idx)
         front = [grid[block_idx] for block_idx in range(len(grid)) if block_idx in front_idx]
+        self.logger.debug(front_idx)
+        self.logger.debug(front)
         # check if relevant items are on the myopic horizon
         for item in self.relevant_items:
             if item in grid:
@@ -202,6 +200,9 @@ class TabQAgent:
                 front[3],
                 front[4],
                 front[5],
+                front[6],
+                front[7],
+                front[8],
                 block_type,
                 in_range,
                 item_count,
@@ -220,9 +221,9 @@ class TabQAgent:
         current_s = self.process_observation(obs)
         # setting up additional rewards based on HTN information
         if current_s[-5] in self.relevant_items:
-            current_r += 10
-            if current_s[-4] == True:
-                current_r +=15
+            current_r += 0.5
+        if current_s[-3] > 0:
+            current_r += 0.15 * current_s[-3]
         if not u'XPos' in obs or not u'ZPos' in obs:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
