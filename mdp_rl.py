@@ -32,7 +32,7 @@ import time
 import matplotlib as mlib
 mlib.use('Agg')
 from QAgent import TabQAgent
-import mlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # store reward_list, num_moves_per_episode, avg_q_value_per_episode
 reward_list = []
@@ -61,43 +61,52 @@ max_retries = 3
 if test:
     num_repeats = 5
 else:
-    num_repeats = 250
+    num_repeats = 300
 cumulative_rewards = []
-for i in range(num_repeats):
-    print
-    print 'Repeat %d of %d' % ( i+1, num_repeats )
-    my_mission_record = MalmoPython.MissionRecordSpec()
-    for retry in range(max_retries):
-        try:
-            agent_host.startMission( my_mission, my_mission_record )
-            break
-        except RuntimeError as e:
-            if retry == max_retries - 1:
-                print "Error starting mission:",e
-                exit(1)
-            else:
-                time.sleep(2.5)
-    print "Waiting for the mission to start",
-    world_state = agent_host.getWorldState()
-    while not world_state.has_mission_begun:
-        sys.stdout.write(".")
-        time.sleep(3.0)
+with open('wall_room.csv','a+') as stat_file:
+    for i in range(num_repeats):
+        print
+        print 'Repeat %d of %d' % ( i+1, num_repeats )
+        my_mission_record = MalmoPython.MissionRecordSpec()
+        for retry in range(max_retries):
+            try:
+                agent_host.startMission( my_mission, my_mission_record )
+                break
+            except RuntimeError as e:
+                if retry == max_retries - 1:
+                    print "Error starting mission:",e
+                    exit(1)
+                else:
+                    time.sleep(2.5)
+        print "Waiting for the mission to start",
         world_state = agent_host.getWorldState()
-        for error in world_state.errors:
-            print "Error:",error.text
-    print
-    # -- run the agent in the world -- #
-    if not test: #use to toggle between test and RL execution
-        cumulative_reward, avg_q, num_moves = agent.run(agent_host)
-        reward_list.append(cumulative_reward)
-        move_list.append(num_moves)
-        avg_q_list.append(avg_q)
-        print 'Cumulative reward: {0}, Number of Moves: {1}, Average Q-value: {2}'.format(cumulative_reward, num_moves, avg_q)
-        cumulative_rewards += [ cumulative_reward ]
-        # -- clean up -- #
-        time.sleep(1.0) # (let the Mod reset)
-    else:
-        time.sleep(30) #let the human do the thang
+        while not world_state.has_mission_begun:
+            sys.stdout.write(".")
+            time.sleep(1.0)
+            world_state = agent_host.getWorldState()
+            for error in world_state.errors:
+                print "Error:",error.text
+        print
+        # -- run the agent in the world -- #
+        if not test: #use to toggle between test and RL execution
+            cumulative_reward, avg_q, num_moves = agent.run(agent_host)
+            reward_list.append(cumulative_reward)
+            move_list.append(num_moves)
+            avg_q_list.append(avg_q)
+            # print on the terminal and save to the file
+            print 'Cumulative reward: {0}, Number of Moves: {1}, Average Q-value: {2}'.format(
+                cumulative_reward,
+                num_moves,
+                avg_q,
+            )
+            stat_file.write("{0},{1},{2}\n".format(cumulative_reward,
+                                                   num_moves,
+                                                   avg_q))
+            cumulative_rewards += [ cumulative_reward ]
+            # -- clean up -- #
+            time.sleep(2.0) # (let the Mod reset)
+        else:
+            time.sleep(30) #let the human do the thang
 print "Done."
 print
 print "Cumulative rewards for all %d runs:" % num_repeats

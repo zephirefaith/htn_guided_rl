@@ -49,9 +49,9 @@ class TabQAgent:
         self.q_table = {}
         self.loc_table = {}
         self.gamma = 0.90
-        self.learning_rate = 0.75
+        self.learning_rate = 0.55
         self.exploration="e-greedy"
-        self.epsilon = 0.1
+        self.epsilon = 0.4
         self.scale = 10
         # gold_room specific
         self.min_x = -68
@@ -221,7 +221,7 @@ class TabQAgent:
         current_s = self.process_observation(obs)
         # setting up additional rewards based on HTN information
         if current_s[-5] in self.relevant_items:
-            current_r += 0.5
+            current_r += 0.75
         if current_s[-3] > 0:
             current_r += 0.15 * current_s[-3]
         if not u'XPos' in obs or not u'ZPos' in obs:
@@ -238,7 +238,7 @@ class TabQAgent:
         # select the next action
         a = self.choose_action( current_s )
         if self.actions[a] == 'attack 1':
-            current_r += -5
+            current_r += -2
         self.logger.info(str(current_s[:]) + ", action: " + str( self.actions[a]))
         # try to send the selected action, only update prev_s  and prev_loc if this succeeds
         try:
