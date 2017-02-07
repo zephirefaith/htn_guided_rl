@@ -23,7 +23,7 @@
   <AgentSection mode="Survival">
     <Name>WallE</Name>
     <AgentStart>
-      <Placement x="-66" y="14" z="-51" yaw="0"/>
+      <Placement x="-63" y="14" z="-42" yaw="180"/>
 			<Inventory>
  				<InventoryItem slot="0" type="diamond_pickaxe"/>
  				<InventoryItem slot="1" type="brick_stairs"/>
@@ -34,6 +34,12 @@
       <InventoryCommands/>
       <ObservationFromFullStats/>
       <ObservationFromRay/>
+      <ObservationFromGrid>
+          <Grid name="around9x9">
+              <min x="-2" y="-1" z="-2" />
+              <max x="2" y="1" z="2" />
+          </Grid>
+      </ObservationFromGrid>
       <RewardForTouchingBlockType>
         <Block reward="-100.0" type="wool" behaviour="onceOnly"/>
         <Block reward="100.0" type="gold_block" behaviour="onceOnly"/>
@@ -42,6 +48,7 @@
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
+          <Block type="dirt" />
       </AgentQuitFromTouchingBlockType>
     </AgentHandlers>
   </AgentSection>

@@ -45,14 +45,14 @@ test = False
 try:
     agent_host.parse( sys.argv )
 except RuntimeError as e:
-    print 'ERROR:',e
+    print 'ERROR:'+e
     print agent_host.getUsage()
     exit(1)
 if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
 # -- set up the mission -- #
-mission_file = 'mdp_version/wall_room.xml'
+mission_file = 'mdp_version/wall_room_ete.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
@@ -63,7 +63,7 @@ if test:
 else:
     num_repeats = 1000
 cumulative_rewards = []
-with open('wall_room.csv','a+') as stat_file:
+with open('wall_room_ete.csv','a+') as stat_file:
     for i in range(num_repeats):
         print
         print 'Repeat %d of %d' % ( i+1, num_repeats )
@@ -112,11 +112,11 @@ print
 print "Cumulative rewards for all %d runs:" % num_repeats
 print cumulative_rewards
 plt.plot(reward_list)
-plt.savefig('reward_wall.png')
+plt.savefig('reward_wall_ete.png')
 plt.close()
 plt.plot(move_list)
-plt.savefig('move_wall.png')
+plt.savefig('move_wall_ete.png')
 plt.close()
 plt.plot(avg_q_list)
-plt.savefig('avg_q_wall.png')
+plt.savefig('avg_q_wall_ete.png')
 plt.close()
