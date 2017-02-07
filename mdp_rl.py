@@ -61,7 +61,7 @@ max_retries = 3
 if test:
     num_repeats = 5
 else:
-    num_repeats = 300
+    num_repeats = 1000
 cumulative_rewards = []
 with open('wall_room.csv','a+') as stat_file:
     for i in range(num_repeats):
@@ -89,7 +89,7 @@ with open('wall_room.csv','a+') as stat_file:
         print
         # -- run the agent in the world -- #
         if not test: #use to toggle between test and RL execution
-            cumulative_reward, avg_q, num_moves = agent.run(agent_host)
+            cumulative_reward, avg_q, num_moves = agent.run(agent_host, i)
             reward_list.append(cumulative_reward)
             move_list.append(num_moves)
             avg_q_list.append(avg_q)

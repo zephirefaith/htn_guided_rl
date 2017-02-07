@@ -15,7 +15,7 @@
       <AllowSpawning>false</AllowSpawning>
     </ServerInitialConditions>
     <ServerHandlers>
-        <FileWorldGenerator src="/home/zephirefaith/Libraries/Malmo/projects/htn_guided_rl/wall_world/" forceReset="1"/>
+        <FileWorldGenerator src="/home/zephire/Malmo/projects/htn_guided_rl/wall_world/" forceReset="1"/>
         <BuildBattleDecorator>
             <GoalStructureBounds>
                 <min x="-70" y="14" z="-45" />

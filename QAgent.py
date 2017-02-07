@@ -8,6 +8,7 @@ import sys
 import time
 import Tkinter as tk
 import numpy as np
+from math import pow
 
 class TabQAgent:
     """Tabular one-step Q-learning agent for discrete state/action spaces."""
@@ -31,9 +32,9 @@ class TabQAgent:
                 "look 1", #down
                 "look -1", #up
                 "attack 1",
-        #        "use 1",
-        #        "slot 0",
-        #        "slot 1"
+                #        "use 1",
+                #        "slot 0",
+                #        "slot 1"
                 ]
         #self.decompose_action = {
         #        "slot 0":[
@@ -51,8 +52,11 @@ class TabQAgent:
         self.gamma = 0.90
         self.learning_rate = 0.55
         self.exploration="e-greedy"
-        self.epsilon = 0.4
+        self.epsilon = 1.0
+        self.starter_epsilon = 0.4
         self.scale = 10
+        self.decay_rate = 0.95
+        self.decay_steps = 100
         # gold_room specific
         self.min_x = -68
         self.min_y = 13
@@ -120,7 +124,7 @@ class TabQAgent:
         """Helper function for choosing next action depending on different strategies"""
         """greedy, random, e-greedy, boltzmann"""
         # TODO modify greedy, random, boltzmann for MDP
-	if self.exploration == "greedy":
+        if self.exploration == "greedy":
             #Choose an action with the maximum expected value.
             a,allQ = sess.run([q_net.predict,q_net.Q_out],feed_dict={q_net.inputs:[s],q_net.keep_per:1.0})
             a = a[0]
@@ -265,7 +269,7 @@ class TabQAgent:
         self.num_moves += 1
         return current_r
 
-    def run(self, agent_host):
+    def run(self, agent_host, num_iter):
         """run the agent on the world"""
         total_reward = 0
         self.prev_s = None
@@ -274,6 +278,7 @@ class TabQAgent:
         self.avg_q = 0
         self.num_moves = 0
         self.pitch_count = 0
+        self.epsilon = self.starter_epsilon * (pow(self.decay_rate, num_iter/self.decay_steps))
         # main loop:
         world_state = agent_host.getWorldState()
         while world_state.is_mission_running:
