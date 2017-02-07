@@ -58,9 +58,9 @@ with open(mission_file, 'r') as f:
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
 # set up client
-my_client_pool = MalmoPython.ClientPool()
-my_client = MalmoPython.ClientInfo("127.0.0.1", 10666)
-my_client_pool.add(my_client)
+#my_client_pool = MalmoPython.ClientPool()
+#my_client = MalmoPython.ClientInfo("127.0.0.1", 10466)
+#my_client_pool.add(my_client)
 max_retries = 3
 if test:
     num_repeats = 5

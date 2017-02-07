@@ -32,8 +32,8 @@ class TabQAgent:
                 "look 1", #down
                 "look -1", #up
                 "attack 1",
-                #        "use 1",
-                #        "slot 0",
+                "use 1",
+                "slot 0",
                 #        "slot 1"
                 ]
         #self.decompose_action = {
@@ -244,7 +244,7 @@ class TabQAgent:
         a = self.choose_action( current_s )
         if self.actions[a] == 'attack 1':
             current_r += -2
-        self.logger.info(str(current_s[:]) + ", action: " + str( self.actions[a]))
+        self.logger.debug(str(current_s[:]) + ", action: " + str( self.actions[a]))
         # try to send the selected action, only update prev_s  and prev_loc if this succeeds
         try:
             # use decomposed actions in succession for "slot 0" and "slot 1" command

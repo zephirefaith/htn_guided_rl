@@ -40,7 +40,7 @@
     <AgentStart>
       <Placement x="-63" y="14" z="-42" yaw="180"/>
       <Inventory>
-        <InventoryItem slot="1" type="brick_stairs"/>
+        <InventoryItem slot="0" type="brick_stairs"/>
       </Inventory>
     </AgentStart>
     <AgentHandlers>
