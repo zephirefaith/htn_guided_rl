@@ -52,18 +52,22 @@ if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
 # -- set up the mission -- #
-mission_file = 'mdp_version/wall_room.xml'
+mission_file = 'mdp_version/stairs_room_ete.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
+# set up client
+my_client_pool = MalmoPython.ClientPool()
+my_client = MalmoPython.ClientInfo("127.0.0.1", 10666)
+my_client_pool.add(my_client)
 max_retries = 3
 if test:
     num_repeats = 5
 else:
     num_repeats = 1000
 cumulative_rewards = []
-with open('wall_room.csv','a+') as stat_file:
+with open('stairs_room.csv','a+') as stat_file:
     for i in range(num_repeats):
         print
         print 'Repeat %d of %d' % ( i+1, num_repeats )
@@ -112,11 +116,11 @@ print
 print "Cumulative rewards for all %d runs:" % num_repeats
 print cumulative_rewards
 plt.plot(reward_list)
-plt.savefig('reward_wall.png')
+plt.savefig('reward_stairs.png')
 plt.close()
 plt.plot(move_list)
-plt.savefig('move_wall.png')
+plt.savefig('move_stairs.png')
 plt.close()
 plt.plot(avg_q_list)
-plt.savefig('avg_q_wall.png')
+plt.savefig('avg_q_stairs.png')
 plt.close()

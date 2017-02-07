@@ -5,6 +5,10 @@
     <Summary>Gold-as-reward, RL-based Room Solver based on old physics-based puzzles</Summary>
   </About>
 
+  <ModSettings>
+      <MsPerTick>10</MsPerTick>
+  </ModSettings>
+
   <ServerSection>
     <ServerInitialConditions>
       <Time>
@@ -12,20 +16,30 @@
         <AllowPassageOfTime>false</AllowPassageOfTime>
       </Time>
       <Weather>clear</Weather>
+      <AllowSpawning>false</AllowSpawning>
     </ServerInitialConditions>
     <ServerHandlers>
-      <FileWorldGenerator src="/home/zephirefaith/Malmo/projects/rl_for_htn/stairs_world/" forceReset="true"/>
-      <ServerQuitFromTimeUp timeLimitMs="10000"/>
+      <FileWorldGenerator src="/home/zephire/Malmo3/projects/htn_guided_rl/stairs_world/" forceReset="true"/>
+        <BuildBattleDecorator>
+            <GoalStructureBounds>
+                <min x="-58" y="13" z="-41" />
+                <max x="-58" y="15" z="-39" />
+            </GoalStructureBounds>
+            <PlayerStructureBounds>
+                <min x="-63" y="14" z="-41" />
+                <max x="-63" y="16" z="-39" />
+            </PlayerStructureBounds>
+        </BuildBattleDecorator>
+      <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
   </ServerSection>
 
-  <AgentSection mode="Creative">
-    <Name>Cristina</Name>
+  <AgentSection mode="Survival">
+    <Name>WallE</Name>
     <AgentStart>
-      <Placement x="-66" y="14" z="-51" pitch="30" yaw="0"/>
+      <Placement x="-63" y="14" z="-42" yaw="180"/>
       <Inventory>
-        <InventoryItem slot="0" type="diamond_pickaxe"/>
         <InventoryItem slot="1" type="brick_stairs"/>
       </Inventory>
     </AgentStart>
@@ -34,14 +48,29 @@
       <InventoryCommands/>
       <ObservationFromFullStats/>
       <ObservationFromRay/>
+      <ObservationFromGrid>
+          <Grid name="around9x9">
+              <min x="-2" y="-1" z="-2" />
+              <max x="2" y="1" z="2" />
+          </Grid>
+      </ObservationFromGrid>
       <RewardForTouchingBlockType>
         <Block reward="-100.0" type="wool" behaviour="onceOnly"/>
         <Block reward="100.0" type="gold_block" behaviour="onceOnly"/>
+        <Block reward="50" type="brick_block" behaviour="onceOnly"/>
+        <Block reward="-100" type="dirt" behaviour="onceOnly"/>
       </RewardForTouchingBlockType>
+      <RewardForReachingPosition>
+          <Marker x="-63" y="13" z="-40.5" reward="50" tolerance="0.6" oneshot="true"/>
+      </RewardForReachingPosition>
+      <RewardForStructureCopying rewardScale="50">
+          <RewardDensity>PER_BLOCK</RewardDensity>
+      </RewardForStructureCopying>
       <RewardForSendingCommand reward="-1" />
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
+          <Block type="dirt" />
       </AgentQuitFromTouchingBlockType>
     </AgentHandlers>
   </AgentSection>

@@ -66,11 +66,12 @@ class TabQAgent:
         self.object_in_hand = 0
         self.relevant_items = [u'gold']
         room = ['wall', 'stairs']
-        scenario = 0 # change for different scenarios
+        scenario = 1 # change for different scenarios
         if room[scenario] == 'wall':
             self.relevant_items.append(u'glass')
         else:
-            self.relevant_items.append(u'brick')
+            self.relevant_items.append(u'brick_block')
+            self.relevant_items.append(u'brick_stairs')
         # for evaluation
         self.avg_q = 0
         self.num_moves = 0
