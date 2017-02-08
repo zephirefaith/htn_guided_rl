@@ -41,6 +41,10 @@ avg_q_list = []
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # flush print output immediately
 agent = TabQAgent()
 agent_host = MalmoPython.AgentHost()
+# set up client
+my_client_pool = MalmoPython.ClientPool()
+my_client = MalmoPython.ClientInfo("127.0.0.1", 10500)
+my_client_pool.add(my_client)
 test = False
 try:
     agent_host.parse( sys.argv )
@@ -52,15 +56,11 @@ if agent_host.receivedArgument("help"):
     print agent_host.getUsage()
     exit(0)
 # -- set up the mission -- #
-mission_file = 'mdp_version/stairs_room_ete.xml'
+mission_file = 'mdp_version/stairs_room.xml'
 with open(mission_file, 'r') as f:
     print "Loading mission from %s" % mission_file
     mission_xml = f.read()
     my_mission = MalmoPython.MissionSpec(mission_xml, True)
-# set up client
-#my_client_pool = MalmoPython.ClientPool()
-#my_client = MalmoPython.ClientInfo("127.0.0.1", 10466)
-#my_client_pool.add(my_client)
 max_retries = 3
 if test:
     num_repeats = 5

@@ -5,6 +5,10 @@
     <Summary>Gold-as-reward, RL-based Room Solver based on old physics-based puzzles</Summary>
   </About>
 
+  <ModSettings>
+      <MsPerTick>15</MsPerTick>
+  </ModSettings>
+
   <ServerSection>
     <ServerInitialConditions>
       <Time>
@@ -12,21 +16,21 @@
         <AllowPassageOfTime>false</AllowPassageOfTime>
       </Time>
       <Weather>clear</Weather>
+      <AllowSpawning>false</AllowSpawning>
     </ServerInitialConditions>
     <ServerHandlers>
-      <FileWorldGenerator src="/home/zephirefaith/Malmo/projects/rl_for_htn/stairs_world/" forceReset="true"/>
+      <FileWorldGenerator src="/home/zephire/Malmo4/projects/rl_for_htn/stairs_world/" forceReset="true"/>
       <ServerQuitFromTimeUp timeLimitMs="30000"/>
       <ServerQuitWhenAnyAgentFinishes/>
     </ServerHandlers>
   </ServerSection>
 
-  <AgentSection mode="Creative">
+  <AgentSection mode="Survival">
     <Name>Cristina</Name>
     <AgentStart>
-      <Placement x="-66" y="14" z="-51" pitch="30" yaw="0"/>
+      <Placement x="-63" y="14" z="-42" yaw="180"/>
       <Inventory>
-        <InventoryItem slot="0" type="diamond_pickaxe"/>
-        <InventoryItem slot="1" type="brick_stairs"/>
+        <InventoryItem slot="0" type="brick_stairs"/>
       </Inventory>
     </AgentStart>
     <AgentHandlers>
@@ -37,11 +41,13 @@
       <RewardForTouchingBlockType>
         <Block reward="-100.0" type="wool" behaviour="onceOnly"/>
         <Block reward="100.0" type="gold_block" behaviour="onceOnly"/>
+        <Block reward="-100.0" type="dirt" behaviour="onceOnly"/>
       </RewardForTouchingBlockType>
       <RewardForSendingCommand reward="-1" />
       <AgentQuitFromTouchingBlockType>
           <Block type="wool" />
           <Block type="gold_block" />
+          <Block type="dirt" />
       </AgentQuitFromTouchingBlockType>
     </AgentHandlers>
   </AgentSection>

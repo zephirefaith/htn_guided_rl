@@ -31,7 +31,7 @@ class TabQAgent:
                 "turn -1",
                 "look 1", #down
                 "look -1", #up
-                "attack 1",
+        #        "attack 1",
                 "use 1",
                 "slot 0",
                 #        "slot 1"
@@ -225,10 +225,10 @@ class TabQAgent:
         self.logger.debug(obs)
         current_s = self.process_observation(obs)
         # setting up additional rewards based on HTN information
-        if current_s[-5] in self.relevant_items:
-            current_r += 0.75
-        if current_s[-3] > 0:
-            current_r += 0.15 * current_s[-3]
+        #if current_s[-5] in self.relevant_items:
+        #    current_r += 0.75
+        #if current_s[-3] > 0:
+        #    current_r += 0.15 * current_s[-3]
         if not u'XPos' in obs or not u'ZPos' in obs:
             self.logger.error("Incomplete observation received: %s" % obs_text)
             return 0
