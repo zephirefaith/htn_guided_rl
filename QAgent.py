@@ -36,16 +36,16 @@ class TabQAgent:
                 "slot 0",
                 #        "slot 1"
                 ]
-        #self.decompose_action = {
-        #        "slot 0":[
-        #            "hotbar.1 1",
-        #            "hotbar.1 0"
-        #            ],
-        #        "slot 1":[
-        #            "hotbar.2 1",
-        #            "hotbar.2 0"
-        #            ]
-        #        }
+        self.decompose_action = {
+                "slot 0":[
+                    "hotbar.1 1",
+                    "hotbar.1 0"
+                    ],
+                "slot 1":[
+                    "hotbar.2 1",
+                    "hotbar.2 0"
+                    ]
+                }
         # q-learning specific
         self.q_table = {}
         self.loc_table = {}
@@ -325,7 +325,6 @@ class TabQAgent:
                     if not world_state.is_mission_running:
                         break
         # process final reward
-        self.logger.debug("Final reward: %d" % current_r)
         total_reward += current_r
         # process average q values this cycle
         self.avg_q = self.avg_q / self.num_moves
